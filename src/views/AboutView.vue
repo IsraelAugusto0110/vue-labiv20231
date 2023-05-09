@@ -1,19 +1,18 @@
 <template>
   <div class="about">
-    <h1>Olá {{ nome }}!</h1>
-    <input type="text" v-model="nome" />
-    <input type="password" v-model="senha" />
+    <h1>Bem vindo {{ nome }}</h1>
+    <label for="nome">Nome: </label>
+    <input id="nome" type="text" v-model="nome" />
+    <label for="senha">Senha: </label>
+    <input id="senha" type="password" v-model="senha" />
     <button @click="cadastrar">Cadastrar</button>
-    <p v-if="nome.length > 5">Texto longo</p>
-    <p v-else>Texto curto</p>
-    <p>{{ contador }} <button @click="incrementar">Incrementar</button></p>
-    <button @click="atualizar">Atualizar</button>
+    <p v-if="erro">{{ erro }}</p>
     <table>
       <thead>
-        <th>Id</th>
-        <th>Nome</th>
+        <td>Id</td>
+        <td>Nome</td>
       </thead>
-      <tr v-for="usuario in usuarios" key="usuario.id">
+      <tr v-for="usuario in usuarios" :key="usuario.id">
         <td>{{ usuario.id }}</td>
         <td>{{ usuario.nome }}</td>
       </tr>
@@ -22,27 +21,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useLoginStore } from '@/stores/login'
 import axios from 'axios'
-const nome = ref('Sorvete')
+const nome = ref('Nome')
 const senha = ref('123')
-const contador = ref(1)
+const erro = ref()
 const usuarios = ref()
-function incrementar() {
-  contador.value++
+const store = useLoginStore()
+const config = {
+  headers: {
+    authorization: store.token
+  }
 }
 async function atualizar() {
-  usuarios.value = (await axios.get('/usuario')).data
+  try {
+    usuarios.value = (await axios.get('usuario', config)).data
+  } catch (ex) {
+    erro.value = (ex as Error).message
+  }
 }
-
 async function cadastrar() {
-  await axios.post('/usuario', {
-    nome: nome.value,
-    senha: senha.value
-  })
+  try {
+    await axios.post('usuario', {
+      nome: nome.value,
+      senha: senha.value
+    })
+  } catch (ex) {
+    erro.value = (ex as Error).message
+  }
   atualizar()
 }
-
 onMounted(() => {
   atualizar()
 })
